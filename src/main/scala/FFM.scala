@@ -230,9 +230,7 @@ class FFM extends Serializable {
             val expnyt = math.exp(-v._1 * t)
             val kappa = -v._1 * expnyt / (1 + expnyt)
             val trLoss = math.log(1 + expnyt)
-            println(s"${c._2}, $trLoss")
             (
-//              updateFFM(v._2, model.n, model.m, model.k, c._1, kappa, param.eta, param.lambda),
               (BDV(c._1) + BDV(gradientFFM(v._2, model.n, model.m, model.k, bcWeights.value, kappa, param.eta, param.lambda)))
                 .toArray,
               c._2 + trLoss,
@@ -240,7 +238,6 @@ class FFM extends Serializable {
               )
           },
           combOp = (c1, c2) => {
-            println(s"${c1._2}, ${c2._2}")
             ((BDV(c1._1) + BDV(c2._1)).toArray, c1._2 + c2._2, c1._3 + c2._3)
           })
 
@@ -271,22 +268,35 @@ class FFM extends Serializable {
     }
     model.W = initWeights
     //    (initWeights, stochasticLossHistory.toArray)
-    model
+    (model, stochasticLossHistory.toArray)
   }
 
+  /**
+    *
+    * @param tr train set
+    * @param va validate set, can be none
+    * @param params tuning parameters
+    * @return
+    */
   def ffmTrainWithValidation(tr: FFMProblem,
                              va: Option[FFMProblem] = None,
                              params: FFMParameter): FFMModel = {
-    train(tr, params, va)
+    train(tr, params, va)._1
   }
 
+  /**
+    *
+    * @param tr train set
+    * @param params tuning parameters
+    * @return
+    */
   def ffmTrain(tr: FFMProblem,
                params: FFMParameter): FFMModel = {
     ffmTrainWithValidation(tr, None, params)
   }
 
-  def ffmPredcit(prob: FFMProblem, model: FFMModel) = {
-
+  def ffmPredcit(data: RDD[Array[FFMNode]], model: FFMModel): RDD[Double] = {
+    data.map(line => computeFFM(line, model.n, model.m, model.k, model.W, model.normablization))
   }
 }
 
